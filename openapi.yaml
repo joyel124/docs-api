@@ -1,0 +1,154 @@
+openapi: 3.0.3
+info:
+  title: Tasks API (HTTP API v2) - Lambda proxy
+  version: "1.1.0"
+  description: |
+    Documentación OpenAPI de la API de tareas desplegada en API Gateway (HTTP API v2),
+    integrada con AWS Lambda (proxy).
+
+    Reglas de negocio:
+    - `id` lo **genera el servidor** (UUID) al crear.
+    - `titulo` es **obligatorio** para crear.
+    - `completada` es booleana; si no se envía al crear, se asume **false**.
+    - `POST /tasks` sirve para **crear** (sin `id`) y **actualizar** (con `id`).
+
+servers:
+  # Stage $default => la base URL NO lleva /default
+  - url: https://k94egbmjoh.execute-api.us-east-2.amazonaws.com
+
+x-amazon-apigateway-cors:
+  allowMethods: ["GET", "POST", "OPTIONS"]
+  allowHeaders: ["Content-Type", "Authorization", "x-api-key"]
+  allowOrigins: ["*"]
+  allowCredentials: false
+  maxAge: 0
+
+paths:
+  /tasks:
+    get:
+      summary: Listar tareas
+      operationId: listTasks
+      responses:
+        "200":
+          description: Lista de tareas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+        "400":
+          description: Error de lectura
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Error del servidor
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:us-east-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-2:838532140759:function:todo-api-fn/invocations
+
+    post:
+      summary: Crear o actualizar una tarea
+      description: |
+        - **Crear**: envía solo `titulo` (y opcional `completada`). El servidor genera `id`.
+        - **Actualizar**: envía `id` de una tarea existente y al menos uno de los campos editables (`titulo`, `completada`).
+      operationId: upsertTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/CreateTaskInput"
+                - $ref: "#/components/schemas/UpdateTaskInput"
+            examples:
+              crear:
+                summary: Crear (sin id)
+                value: { "titulo": "Comprar pan" }
+              actualizar:
+                summary: Actualizar (con id)
+                value: { "id": "6f8c2e7e-5c3b-4a9e-a5a7-7b4f3f7ae111", "completada": true }
+      responses:
+        "200":
+          description: Tarea creada/actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          description: Petición inválida (p. ej. falta 'titulo' al crear)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: No existe la tarea (al intentar actualizar con un id inexistente)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Error del servidor
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:us-east-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-2:838532140759:function:todo-api-fn/invocations
+
+components:
+  schemas:
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Identificador único (UUID). Lo genera el servidor.
+          readOnly: true
+          example: "6f8c2e7e-5c3b-4a9e-a5a7-7b4f3f7ae111"
+        titulo:
+          type: string
+          example: "Comprar pan"
+        completada:
+          type: boolean
+          default: false
+      required: [id, titulo, completada]
+
+    CreateTaskInput:
+      type: object
+      properties:
+        titulo:
+          type: string
+          description: Título de la tarea
+        completada:
+          type: boolean
+          description: Opcional; si no se envía, se asume false
+          default: false
+      required: [titulo]
+
+    UpdateTaskInput:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID existente (PK) de la tarea. No se actualiza; solo identifica el ítem a modificar.
+        titulo:
+          type: string
+        completada:
+          type: boolean
+      required: [id]
+      anyOf:
+        - required: [titulo]
+        - required: [completada]
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "titulo (string) es requerido"
+
+x-amazon-apigateway-importexport-version: "1.0"
