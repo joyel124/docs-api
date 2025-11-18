@@ -131,6 +131,9 @@ components:
 
     UpdateTaskInput:
       type: object
+      description: >
+        Para actualizar, envía siempre `id` y al menos uno de los campos editables
+        (`titulo`, `completada`).
       properties:
         id:
           type: string
@@ -139,10 +142,9 @@ components:
           type: string
         completada:
           type: boolean
-      required: [id]
-      anyOf:
-        - required: [titulo]
-        - required: [completada]
+      required:
+        - id
+      minProperties: 2
 
     Error:
       type: object
