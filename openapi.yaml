@@ -68,10 +68,24 @@ paths:
             examples:
               crear:
                 summary: Crear (sin id)
-                value: { "titulo": "Comprar pan" }
-              actualizar:
-                summary: Actualizar (con id)
-                value: { "id": "6f8c2e7e-5c3b-4a9e-a5a7-7b4f3f7ae111", "completada": true }
+                value:
+                  titulo: "Comprar pan"
+              actualizarCompletada:
+                summary: Actualizar solo 'completada'
+                value:
+                  id: "6f8c2e7e-5c3b-4a9e-a5a7-7b4f3f7ae111"
+                  completada: true
+              actualizarTitulo:
+                summary: Actualizar solo 'titulo'
+                value:
+                  id: "6f8c2e7e-5c3b-4a9e-a5a7-7b4f3f7ae111"
+                  titulo: "Comprar leche"
+              actualizarAmbos:
+                summary: Actualizar 'titulo' y 'completada'
+                value:
+                  id: "6f8c2e7e-5c3b-4a9e-a5a7-7b4f3f7ae111"
+                  titulo: "Comprar leche"
+                  completada: true
       responses:
         "200":
           description: Tarea creada/actualizada
